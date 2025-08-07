@@ -7,8 +7,8 @@ import logomaker
 from sklearn.feature_extraction.text import CountVectorizer
 
 # Load model and vectorizer
-model = joblib.load("Model/naive_bayes_model.pkl")  # Update path if needed
-vectorizer = joblib.load("Model/count_vectorizer.pkl")  # Update path if needed
+model = joblib.load("Model/naive_bayes_model.pkl")
+vectorizer = joblib.load("Model/count_vectorizer.pkl")
 
 # Class mapping
 class_mappings = {
@@ -25,19 +25,41 @@ class_mappings = {
 def get_kmers(sequence, size=6):
     return [sequence[i:i+size] for i in range(len(sequence)-size+1)]
 
+df = pd.read_table("examples.txt")
+
+examples = df["examples"].tolist()
+
+# Example sequences
+example_sequences = {
+    "Example 1": examples[0],
+    "Example 2": examples[1],
+    "Example 3": examples[2]
+}
+
 # Page title
 st.title("🧬 DNA Sequence Classifier")
 
-# Sidebar
+# Sidebar - Upload or Select Example
 st.sidebar.header("Input Options")
 uploaded_file = st.sidebar.file_uploader("Upload DNA Sequence File (.txt)", type=["txt"])
 
-# Read uploaded file
+st.sidebar.markdown("---")
+st.sidebar.markdown("### Or choose an example sequence:")
+selected_example = st.sidebar.radio("Example Sequences", list(example_sequences.keys()))
+
+# Read uploaded or example file
 sequence = ""
+source = ""
+
 if uploaded_file:
     raw = uploaded_file.read().decode("utf-8")
-    # Remove FASTA headers if present
     sequence = ''.join([line.strip() for line in raw.splitlines() if not line.startswith(">")]).upper()
+    source = "uploaded"
+elif selected_example:
+    sequence = example_sequences[selected_example]
+    source = "example"
+
+if sequence:
     st.subheader("📥 Input DNA Sequence")
     st.text_area("Sequence (first 1000 characters shown)", sequence[:1000], height=150)
 
@@ -67,13 +89,5 @@ if uploaded_file:
 
     st.markdown(f"### 🧬 Class: `{class_mappings[pred]}`")
     st.markdown(f"Confidence: `{proba[pred]*100:.2f}%`")
-
-    # Optional: Show sequence logo (if short enough)
-    if len(sequence) <= 100:
-        st.subheader("📈 Sequence Logo")
-        logo_df = logomaker.alignment_to_matrix([sequence])
-        fig2, ax2 = plt.subplots(figsize=(10, 3))
-        logomaker.Logo(logo_df, ax=ax2)
-        st.pyplot(fig2)
 else:
-    st.info("Please upload a DNA sequence file to begin.")
+    st.info("Please upload a file or select an example to begin.")
